@@ -2,6 +2,7 @@ import socket
 import os
 import sys
 
+
 # Opening the server's socket.
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # Getting the port from the system.
