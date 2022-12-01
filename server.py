@@ -14,7 +14,7 @@ if not server_port.isnumeric() or (int(server_port) not in range(0, 65536)):
 s.bind(('', int(server_port)))
 
 
-server = socket(socket.AF_INET, socket.SOCK_STREAM)
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(('', 12345))
 server.listen(5)
 
