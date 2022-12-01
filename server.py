@@ -16,6 +16,9 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(('', 12345))
 server.listen(5)
 
+
+
+
 if __name__ == '__main__':
     while True:
         client_socket, client_address = server.accept()
