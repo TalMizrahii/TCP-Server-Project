@@ -14,25 +14,21 @@ if not server_port.isnumeric() or (int(server_port) not in range(0, 65536)):
 s.bind(('', int(server_port)))
 '''
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.settimeout(1.0)
-server.bind(('', 12334))
+server.bind(('', 12344))
 server.listen(5)
 
 
 def search_file(patch_search, status):
     if patch_file == '/redirect':
         return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'
-    try:
-        file = open(patch_search, 'rb')
-    except IOError:
-        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'
+    file = open(patch_search, 'rb')
     content = file.read()
     content_length = str(len(content))
 
     format_resend1 = 'HTTP/1.1 200 OK\nConnection: ' + status + '\nContent-Length: '
-    format_resend2 = content_length + '\n\n'
+    format_resend2 = '\n\n'
 
-    result = format_resend1.encode() + format_resend2.encode() + content
+    result = format_resend1.encode() + content_length.encode() + format_resend2.encode() + content
     return result
 
 
@@ -52,37 +48,14 @@ def extract_patch_and_conn(client_data):
     return patch, connection
 
 
-def close_client_socket(info):
-    if info == '' or 'close' or 'HTTP/1.1 404 Not Found\nConnection: close\n\n':
-        print('Client disconnected\n')
-        client_socket.close()
-
-
 if __name__ == '__main__':
 
     while True:
         client_socket, client_address = server.accept()
-        client_socket.settimeout(1.0)
         print('Connection from: ', client_address)
-        try:
-            data = client_socket.recv(100).decode()
-            print('Received: ', data)
-            if data == '':
-                print('Client disconnected\n')
-                client_socket.close()
-                continue
-            patch_file, connection_status = extract_patch_and_conn(data)
-            if connection_status == 'close':
-                print('Client disconnected\n')
-                client_socket.close()
-                continue
-        except socket.timeout:
-            print('Client disconnected\n')
-            client_socket.close()
-            continue
-        reply = search_file(patch_file, connection_status)
-        client_socket.send(reply)
-        if reply == 'HTTP/1.1 404 Not Found\nConnection: close\n\n':
-            print('Client disconnected\n')
-            client_socket.close()
-            continue
+        data = client_socket.recv(100).decode()
+        print('Received: ', data)
+        patch_file, connection_status = extract_patch_and_conn(data)
+        client_socket.send(search_file(patch_file, connection_status))
+
+        print('Client disconnected\n')
