@@ -32,7 +32,7 @@ def search_file(path_search, status):
     return result
 
 
-def extract_patch_and_conn(client_data):
+def extract_path_and_conn(client_data):
     data_list = client_data.split(' ')
     i = 2
     path = data_list[1]
@@ -51,21 +51,32 @@ def extract_patch_and_conn(client_data):
 
 
 def close_client_socket(info):
-    if info == '' or 'close' or 'HTTP/1.1 404 Not Found\nConnection: close\n\n':
+    if info == '' or '/close' or 'HTTP/1.1 404 Not Found\nConnection: close\n\n':
         print('Client disconnected\n')
         client_socket.close()
 
 
 if __name__ == '__main__':
     while True:
-
+        # Creating the client's specific socket.
         client_socket, client_address = server.accept()
+        # Setting timeout to the socket.
         client_socket.settimeout(10)
-
+        # Printing the client's address by the requested format.
         print('Connection from: ', client_address)
+        # Decoding the data he sent.
         data = client_socket.recv(100).decode()
         print('Received: ', data)
-
-        path_file, connection_status = extract_patch_and_conn(data)
+        # Extract the data and connection status from the client's request.
+        path_file, connection_status = extract_path_and_conn(data)
+        # If the client sent a message to close the program, execute.
         if close_client_socket(path_file):
+            continue
+        # If the request is about to search for a file, try to find it in the limits of the timeout.
+        try:
+            # Try to find the file.
             client_socket.send(search_file(path_file, connection_status))
+        except client_socket.timeout:
+            # If the timeout accord, close the socket.
+            close_client_socket(path_file)
+
