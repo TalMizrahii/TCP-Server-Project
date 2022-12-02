@@ -1,4 +1,3 @@
-
 import socket
 import os
 import sys
@@ -19,10 +18,10 @@ server.bind(('', 12344))
 server.listen(5)
 
 
-def search_file(patch_search, status):
-    if patch_file == '/redirect':
+def search_file(path_search, status):
+    if path_search == '/redirect':
         return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'
-    file = open(patch_search, 'rb')
+    file = open(path_search, 'rb')
     content = file.read()
     content_length = str(len(content))
 
@@ -36,26 +35,37 @@ def search_file(patch_search, status):
 def extract_patch_and_conn(client_data):
     data_list = client_data.split(' ')
     i = 2
-    patch = data_list[1]
+    path = data_list[1]
     while data_list[i] != 'HTTP/1.1\r\nHost:':
-        patch += data_list[i]
-        patch += ' '
+        path += data_list[i]
+        path += ' '
         i += 1
 
     connection = data_list[4]
     connection = connection.split('\r')[0]
-    patch = patch[1:]
-    return patch, connection
+    path = path[1:]
+    # If the client sent the char '/' he means the file 'index.html'.
+    if path == '/':
+        path = 'index.html'
+    return path, connection
+
+
+def close_client_socket(info):
+    if info == '' or 'close' or 'HTTP/1.1 404 Not Found\nConnection: close\n\n':
+        print('Client disconnected\n')
+        client_socket.close()
 
 
 if __name__ == '__main__':
-
     while True:
+
         client_socket, client_address = server.accept()
+        client_socket.settimeout(10)
+
         print('Connection from: ', client_address)
         data = client_socket.recv(100).decode()
         print('Received: ', data)
-        patch_file, connection_status = extract_patch_and_conn(data)
-        client_socket.send(search_file(patch_file, connection_status))
 
-        print('Client disconnected\n')
+        path_file, connection_status = extract_patch_and_conn(data)
+        if close_client_socket(path_file):
+            client_socket.send(search_file(path_file, connection_status))
