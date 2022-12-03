@@ -77,7 +77,7 @@ def extract_path_and_conn(data_list):
     return path, connection
 
 
-def close_client_socket(info, client_sock):
+def close_client_socket(info):
     if info == 0 or info == 'close':
         return True
     return False
@@ -93,7 +93,8 @@ def send_to_client(sock, user_address):
     while True:
         try:
             data = sock.recv(2048)
-            if close_client_socket(len(data), sock):
+            if close_client_socket(len(data)):
+                sock.close()
                 return
         except sock.timeout:
             sock.close()
@@ -108,12 +109,9 @@ def send_to_client(sock, user_address):
         # Extracting the path/file name from the data.
         patch_file, connection_status = extract_path_and_conn(split_data)
         # Searching for the file in the system.
-        response_status, response_data = search_file(patch_file, connection_status)
+        response_data, response_status  = search_file(patch_file, connection_status)
 
-        # if close_client_socket(connection_status, sock) or close_client_socket(response_data, sock) \
-        #         and patch_file != 'redirect':
-        #     return
-        if close_client_socket(response_status, sock):
+        if close_client_socket(response_status):
             sock.send(response_data)
             close_socket(sock)
             return
@@ -125,7 +123,7 @@ def send_to_client(sock, user_address):
 def main():
     while True:
         client_socket, client_address = server.accept()
-        client_socket.settimeout(20.0)
+        client_socket.settimeout(30.0)
         send_to_client(client_socket, client_address)
         client_socket.close()
 
