@@ -19,7 +19,6 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(('', 12345))
 server.listen(5)
 
-
 def search_file(patch_search, status):
     # if patch_file == 'redirect':
     #     return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'
