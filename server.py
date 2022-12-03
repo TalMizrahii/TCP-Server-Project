@@ -77,7 +77,7 @@ def send_to_client(sock, user_address):
     while True:
         try:
             data = sock.recv(2048).decode()
-        except socket.timeout:
+        except sock.timeout:
             print('Client disconnected\n')
             return
         # Checking if the data is a request or not.
