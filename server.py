@@ -18,12 +18,12 @@ s.bind(('', int(server_port)))
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(('', 12345))
 server.listen(5)
+server.settimeout(10.0)
 
 
 def search_file(patch_search, status):
     # if patch_file == 'redirect':
     #     return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'
-
     # Try to open and read in binary the file from the 'files' folder.
     try:
         file = open(patch_search, 'rb')
@@ -43,6 +43,9 @@ def search_file(patch_search, status):
 
     result = format_resend1.encode() + format_resend2.encode() + content
     return result
+
+    # Return the response.
+    # return format_resend1.encode() + content
 
 
 def extract_path_and_conn(data_list):
@@ -75,6 +78,7 @@ def close_client_socket(info):
 
 
 def send_to_client(sock, user_address):
+    print('Connection from: ' + user_address)
     while True:
         try:
             data = sock.recv(2048).decode()
@@ -96,11 +100,11 @@ def send_to_client(sock, user_address):
         sock.send(response_data)
 
 
+
 def main():
     while True:
         client_socket, client_address = server.accept()
-        client_socket.settimeout(1.0)
-        send_to_client(client_socket, client_address)
+        send_to_client(client_socket)
         client_socket.close()
 
 
