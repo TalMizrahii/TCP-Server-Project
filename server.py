@@ -93,8 +93,7 @@ def send_to_client(sock, user_address):
             if len(data) == 0:
                 # Close func
                 pass
-
-        except sock.timeout:
+        except sock.timeout():
             sock.close()
             return
         data = data.decode()
