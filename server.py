@@ -17,7 +17,6 @@ s.bind(('', int(server_port)))
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(('', 12345))
 server.listen(5)
-server.settimeout(10.0)
 
 
 def search_file(patch_search, status):
@@ -74,28 +73,33 @@ def close_client_socket(info):
         return True
 
 
-def send_to_client(sock):
+def send_to_client(sock, user_address):
     while True:
         try:
             data = sock.recv(2048).decode()
-            print(data)
         except socket.timeout:
             print('Client disconnected\n')
             return
-        print('Received: ', data)
+        # Checking if the data is a request or not.
         split_data = data.split(' ')
         if split_data[0] != 'GET':
             continue
+
+        # Printing the request from the client as asked.
+        print(data)
+        # Extracting the path/file name from the data.
         patch_file, connection_status = extract_path_and_conn(split_data)
+        # Searching for the file in the system.
         response_data = search_file(patch_file, connection_status)
+        # Returning the response.
         sock.send(response_data)
 
 
 def main():
     while True:
         client_socket, client_address = server.accept()
-        print('Connection from: ', client_address, '\n')
-        send_to_client(client_socket)
+        client_socket.settimeout(1.0)
+        send_to_client(client_socket, client_address)
         client_socket.close()
 
 
