@@ -22,8 +22,7 @@ server.listen(5)
 def search_file(path_search, status):
     # If the client sent 'redirect', we return to him the follow message.
     if path_search == 'redirect':
-        status = 'close'
-        return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'.encode(), status
+        return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'.encode(), 'close'
     # If the client sends the message '/', he wants the file 'index.html'.
     if path_search == '/':
         path_search = 'files/index.html'
@@ -35,20 +34,16 @@ def search_file(path_search, status):
         file = open(path_search, 'rb')
     # If the file does not exist, send a message and close the socket.
     except IOError:
-        status = 'close'
         # Close func
-        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'.encode(),  status
+        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'.encode(),  'close'
 
     # Read the data from the file in binary.
     content = file.read()
     # Save the length of the file's content.
     content_length = str(len(content))
-    # Create the response message.
-    # format_resend1 = 'HTTP/1.1 200 OK\nConnection: ' + status + '\nContent-Length: ' + content_length + '\n\n'
-
+    # Building a reply message to the user
     format_resend1 = 'HTTP/1.1 200 OK\nConnection: ' + status + '\nContent-Length: '
     format_resend2 = content_length + '\n\n'
-
     result = format_resend1.encode() + format_resend2.encode() + content
 
     return result, status
@@ -82,25 +77,33 @@ def extract_path_and_conn(data_list):
 
 def close_client_socket(client_sock):
     print('Client disconnected\n')
+    # Closing the user socket.
     client_sock.close()
     return
 
 
 def send_to_client(sock, user_address):
+    # Printing the user address.
     print('Connection from: ', user_address)
+    # Serving the client
     while True:
+        # Trying to receive the client request.
         try:
             data = sock.recv(2048)
+            # Checking if the user sent an empy data.
             if len(data) == 0:
                 close_client_socket(sock)
                 return
-        except (socket.timeout, socket.gaierror) as error:
+        # If we did not get the client request in 1s timeout.
+        except sock.timeout as error:
             sock.close()
             return
-        # Checking if the data is a request or not.
+        # decode data to string representation.
         data = data.decode()
         print(data)
+        # Split data.
         split_data = data.split(' ')
+        # Checking if the data is a request or not.
         if split_data[0] != 'GET':
             continue
         # Printing the request from the client as asked.
@@ -109,6 +112,7 @@ def send_to_client(sock, user_address):
         patch_file, connection_status = extract_path_and_conn(split_data)
         # Searching for the file in the system.
         response_data, flag = search_file(patch_file, connection_status)
+        # Checking with the flag if we need to close the client socket
         if flag == 'close':
             sock.send(response_data)
             return
