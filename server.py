@@ -89,12 +89,20 @@ def main():
         patch_file, connection_status = extract_path_and_conn(data)
 
         response_data, response_length = search_file(patch_file, connection_status)
-        response_data_array = bytearray(response_data)
-        size_to_send = 100
-        while response_length > size_to_send:
-            client_socket.send(response_data_array[size_to_send - 100: size_to_send])
-            size_to_send += 100
 
+        response_data_array = bytearray(response_data)
+        size_to_send = 0
+        next_step = 100
+        while response_length > size_to_send:
+
+            if size_to_send > response_length:
+                size_to_send -= next_step
+                next_step = response_length - size_to_send - 1
+                client_socket.send(response_data_array[size_to_send: size_to_send + next_step])
+                break
+
+            client_socket.send(response_data_array[size_to_send: size_to_send + next_step])
+            size_to_send += next_step
         print("\n\n")
 
 
