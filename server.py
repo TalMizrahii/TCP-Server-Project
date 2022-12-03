@@ -19,15 +19,23 @@ server.bind(('', 12345))
 server.listen(5)
 
 
-def search_file(patch_search, status):
-    # if patch_file == 'redirect':
-    #     return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'
-    # Try to open and read in binary the file from the 'files' folder.
+def search_file(path_search, status):
+    # If the client sent 'redirect', we return to him the follow message.
+    if path_search == 'redirect':
+        return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'.encode()
+    # If the client sends the message '/', he wants the file 'index.html'.
+    if path_search == '/':
+        path_search = 'files/index.html'
+    # If the client wants a file by name and not by path, allow him.
+    if path_search[0:5] != "files":
+        path_search = 'files/' + path_search
+
     try:
-        file = open(patch_search, 'rb')
+        file = open(path_search, 'rb')
     # If the file does not exist, send a message and close the socket.
     except IOError:
-        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'
+        # Close func
+        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'.encode()
 
     # Read the data from the file in binary.
     content = file.read()
@@ -40,10 +48,8 @@ def search_file(patch_search, status):
     format_resend2 = content_length + '\n\n'
 
     result = format_resend1.encode() + format_resend2.encode() + content
-    return result
 
-    # Return the response.
-    # return format_resend1.encode() + content
+    return result
 
 
 def extract_path_and_conn(data_list):
@@ -64,6 +70,9 @@ def extract_path_and_conn(data_list):
     # Save the connection status.
     connection = data_list[index_of_loop]
     connection = connection.split('\r')[0]
+    # Don't remove the first '/' if it's the whole message.
+    if path == '/':
+        return path, connection
     # Save the path without the starting '/'.
     path = path[1:]
     return path, connection
@@ -99,6 +108,7 @@ def send_to_client(sock, user_address):
         patch_file, connection_status = extract_path_and_conn(split_data)
         # Searching for the file in the system.
         response_data = search_file(patch_file, connection_status)
+
         # Returning the response.
         sock.send(response_data)
 
@@ -106,7 +116,7 @@ def send_to_client(sock, user_address):
 def main():
     while True:
         client_socket, client_address = server.accept()
-        client_socket.settimeout(10)
+        client_socket.settimeout(20)
         send_to_client(client_socket, client_address)
 
 
