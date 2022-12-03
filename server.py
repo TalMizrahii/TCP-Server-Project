@@ -13,72 +13,90 @@ if not server_port.isnumeric() or (int(server_port) not in range(0, 65536)):
 # Binding the server port (received from the sys).
 s.bind(('', int(server_port)))
 '''
+
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(('', 12344))
+server.bind(('', 12345))
 server.listen(5)
 
 
-def search_file(path_search, status):
-    if path_search == '/redirect':
-        return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'
-    file = open(path_search, 'rb')
+def search_file(patch_search, status):
+    # if patch_file == 'redirect':
+    #     return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'
+    # Try to open and read in binary the file from the 'files' folder.
+    try:
+        file = open(patch_search, 'rb')
+    # If the file does not exist, send a message and close the socket.
+    except IOError:
+        # return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'
+        pass
+        return
+
+        # Read the data from the file in binary.
     content = file.read()
+    # Save the length of the file's content.
     content_length = str(len(content))
+    # Create the response message.
+    # format_resend1 = 'HTTP/1.1 200 OK\nConnection: ' + status + '\nContent-Length: ' + content_length + '\n\n'
 
     format_resend1 = 'HTTP/1.1 200 OK\nConnection: ' + status + '\nContent-Length: '
-    format_resend2 = '\n\n'
+    format_resend2 = content_length + '\n\n'
 
-    result = format_resend1.encode() + content_length.encode() + format_resend2.encode() + content
-    return result
+    result = format_resend1.encode() + format_resend2.encode() + content
+    return result, int(content_length)
+
+    # Return the response.
+    # return format_resend1.encode() + content
 
 
 def extract_path_and_conn(client_data):
+    # Spiting the request from the client.
     data_list = client_data.split(' ')
-    i = 2
+    # DELETE - Check only.
+    print(data_list)
+    #
     path = data_list[1]
-    while data_list[i] != 'HTTP/1.1\r\nHost:':
-        path += data_list[i]
+    index_of_loop = 2
+    # Scan the split data until you see the end of the request.
+    while data_list[index_of_loop] != 'HTTP/1.1\r\nHost:':
+        # Add the spaces removed by the "split".
         path += ' '
-        i += 1
-
-    connection = data_list[4]
+        # Keep scanning.
+        path += data_list[index_of_loop]
+        index_of_loop += 1
+    # Step over the http format to the connection segment.
+    index_of_loop += 2
+    # Save the connection status.
+    connection = data_list[index_of_loop]
     connection = connection.split('\r')[0]
+    # Save the path without the starting '/'.
     path = path[1:]
-    # If the client sent the char '/' he means the file 'index.html'.
-    if path == '/':
-        path = 'index.html'
     return path, connection
 
 
-def close_client_socket(info):
-    if info == '' or '/close' or 'HTTP/1.1 404 Not Found\nConnection: close\n\n':
-        print('Client disconnected\n')
-        client_socket.close()
+def main():
+    while True:
+        client_socket, client_address = server.accept()
+        client_socket.settimeout(10.0)
+        print('Connection from: ', client_address)
+        try:
+            data = client_socket.recv(100).decode()
+        except:
+            # CLOSE
+            client_socket.close()
+            continue
+
+        print('Received: ', data)
+        patch_file, connection_status = extract_path_and_conn(data)
+
+        response_data, response_length = search_file(patch_file, connection_status)
+        response_data_array = bytearray(response_data)
+        size_to_send = 100
+        while response_length > size_to_send:
+            client_socket.send(response_data_array[size_to_send - 100: size_to_send])
+            size_to_send += 100
+
+        print("\n\n")
 
 
 if __name__ == '__main__':
-    while True:
-        # Creating the client's specific socket.
-        client_socket, client_address = server.accept()
-        # Setting timeout to the socket.
-        client_socket.settimeout(10)
-        # Printing the client's address by the requested format.
-        print('Connection from: ', client_address)
-        # Decoding the data he sent.
-        data = client_socket.recv(100).decode()
-        print('Received: ', data)
-        # Extract the data and connection status from the client's request.
-        path_file, connection_status = extract_path_and_conn(data)
-        # If the client sent a message to close the program, execute.
-        if close_client_socket(path_file):
-            continue
-        # If the request is about to search for a file, try to find it in the limits of the timeout.
-        try:
-            # Try to find the file.
-            client_socket.send(search_file(path_file, connection_status))
-        except client_socket.timeout:
-            # If the timeout accord, close the socket.
-            close_client_socket(path_file)
-
-
-
+    main()
