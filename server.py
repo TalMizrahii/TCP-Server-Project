@@ -22,7 +22,7 @@ server.listen(5)
 def search_file(path_search, status):
     # If the client sent 'redirect', we return to him the follow message.
     if path_search == 'redirect':
-        return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'.encode()
+        return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'.encode(), 'close'
     # If the client sends the message '/', he wants the file 'index.html'.
     if path_search == '/':
         path_search = 'files/index.html'
@@ -35,7 +35,7 @@ def search_file(path_search, status):
     # If the file does not exist, send a message and close the socket.
     except IOError:
         # Close func
-        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'.encode()
+        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'.encode(), 'close'
 
     # Read the data from the file in binary.
     content = file.read()
@@ -48,8 +48,7 @@ def search_file(path_search, status):
     format_resend2 = content_length + '\n\n'
 
     result = format_resend1.encode() + format_resend2.encode() + content
-
-    return result
+    return result, status
 
 
 def extract_path_and_conn(data_list):
@@ -78,10 +77,15 @@ def extract_path_and_conn(data_list):
     return path, connection
 
 
-def close_client_socket(info):
-    if info == ' ' or 'close' or 'HTTP/1.1 404 Not Found\nConnection: close\n\n':
-        print('Client disconnected\n')
+def close_client_socket(info, client_sock):
+    if info == 0 or info == 'close':
         return True
+    return False
+
+
+def close_socket(socket_client):
+    print('Client disconnected\n')
+    socket_client.close()
 
 
 def send_to_client(sock, user_address):
@@ -89,25 +93,30 @@ def send_to_client(sock, user_address):
     while True:
         try:
             data = sock.recv(2048)
-            # Check if empty message.
-            if len(data) == 0:
-                # Close func
-                pass
-        except sock.timeout():
+            if close_client_socket(len(data), sock):
+                return
+        except sock.timeout:
             sock.close()
             return
-        data = data.decode()
         # Checking if the data is a request or not.
+        data = data.decode()
         split_data = data.split(' ')
         if split_data[0] != 'GET':
             continue
         # Printing the request from the client as asked.
         print(data)
-        # כאן
         # Extracting the path/file name from the data.
         patch_file, connection_status = extract_path_and_conn(split_data)
         # Searching for the file in the system.
-        response_data = search_file(patch_file, connection_status)
+        response_status, response_data = search_file(patch_file, connection_status)
+
+        # if close_client_socket(connection_status, sock) or close_client_socket(response_data, sock) \
+        #         and patch_file != 'redirect':
+        #     return
+        if close_client_socket(response_status, sock):
+            sock.send(response_data)
+            close_socket(sock)
+            return
 
         # Returning the response.
         sock.send(response_data)
@@ -116,8 +125,9 @@ def send_to_client(sock, user_address):
 def main():
     while True:
         client_socket, client_address = server.accept()
-        client_socket.settimeout(20)
+        client_socket.settimeout(20.0)
         send_to_client(client_socket, client_address)
+        client_socket.close()
 
 
 if __name__ == '__main__':
