@@ -96,7 +96,7 @@ def send_to_client(sock, user_address):
             if close_client_socket(len(data)):
                 sock.close()
                 return
-        except sock.timeout:
+        except (socket.timeout, socket.gaierror) as error:
             sock.close()
             return
         # Checking if the data is a request or not.
@@ -109,7 +109,7 @@ def send_to_client(sock, user_address):
         # Extracting the path/file name from the data.
         patch_file, connection_status = extract_path_and_conn(split_data)
         # Searching for the file in the system.
-        response_data, response_status  = search_file(patch_file, connection_status)
+        response_data, response_status = search_file(patch_file, connection_status)
 
         if close_client_socket(response_status):
             sock.send(response_data)
@@ -123,7 +123,7 @@ def send_to_client(sock, user_address):
 def main():
     while True:
         client_socket, client_address = server.accept()
-        client_socket.settimeout(30.0)
+        client_socket.settimeout(5.0)
         send_to_client(client_socket, client_address)
         client_socket.close()
 
