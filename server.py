@@ -15,14 +15,15 @@ s.bind(('', int(server_port)))
 '''
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(('', 12345))
+server.bind(('', 12344))
 server.listen(5)
 
 
 def search_file(path_search, status):
     # If the client sent 'redirect', we return to him the follow message.
     if path_search == 'redirect':
-        return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'.encode(), 0
+        status = 'close'
+        return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'.encode(), status
     # If the client sends the message '/', he wants the file 'index.html'.
     if path_search == '/':
         path_search = 'files/index.html'
@@ -34,8 +35,9 @@ def search_file(path_search, status):
         file = open(path_search, 'rb')
     # If the file does not exist, send a message and close the socket.
     except IOError:
+        status = 'close'
         # Close func
-        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'.encode(), 0
+        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'.encode(),  status
 
     # Read the data from the file in binary.
     content = file.read()
@@ -49,7 +51,7 @@ def search_file(path_search, status):
 
     result = format_resend1.encode() + format_resend2.encode() + content
 
-    return result, 1
+    return result, status
 
 
 def extract_path_and_conn(data_list):
@@ -92,11 +94,12 @@ def send_to_client(sock, user_address):
             if len(data) == 0:
                 close_client_socket(sock)
                 return
-        except sock.timeout:
+        except (socket.timeout, socket.gaierror) as error:
             sock.close()
             return
         # Checking if the data is a request or not.
         data = data.decode()
+        print(data)
         split_data = data.split(' ')
         if split_data[0] != 'GET':
             continue
@@ -106,7 +109,7 @@ def send_to_client(sock, user_address):
         patch_file, connection_status = extract_path_and_conn(split_data)
         # Searching for the file in the system.
         response_data, flag = search_file(patch_file, connection_status)
-        if flag == 0 or connection_status == 'close':
+        if flag == 'close':
             sock.send(response_data)
             return
         # Returning the response.
@@ -116,7 +119,7 @@ def send_to_client(sock, user_address):
 def main():
     while True:
         client_socket, client_address = server.accept()
-        client_socket.settimeout(20.0)
+        client_socket.settimeout(1.0)
         send_to_client(client_socket, client_address)
         client_socket.close()
 
