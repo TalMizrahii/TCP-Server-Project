@@ -17,6 +17,7 @@ s.bind(('', int(server_port)))
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(('', 12344))
 server.listen(5)
+server.settimeout(10.0)
 
 
 def search_file(path_search, status):
@@ -35,7 +36,7 @@ def search_file(path_search, status):
     # If the file does not exist, send a message and close the socket.
     except IOError:
         # Close func
-        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'.encode(),  'close'
+        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'.encode(), 'close'
 
     # Read the data from the file in binary.
     content = file.read()
@@ -50,9 +51,7 @@ def search_file(path_search, status):
 
 
 def extract_path_and_conn(data_list):
-    # DELETE - Check only.
-    print(data_list)
-    #
+    # Getting the patch to the file the user request.
     path = data_list[1]
     index_of_loop = 2
     # Scan the split data until you see the end of the request.
@@ -95,19 +94,18 @@ def send_to_client(sock, user_address):
                 close_client_socket(sock)
                 return
         # If we did not get the client request in 1s timeout.
-        except sock.timeout as error:
+        except server.timeout as error:
             sock.close()
             return
-        # decode data to string representation.
+        # Decode data to string representation.
         data = data.decode()
-        print(data)
         # Split data.
         split_data = data.split(' ')
         # Checking if the data is a request or not.
         if split_data[0] != 'GET':
             continue
         # Printing the request from the client as asked.
-        # print(data)
+        print(data)
         # Extracting the path/file name from the data.
         patch_file, connection_status = extract_path_and_conn(split_data)
         # Searching for the file in the system.
@@ -123,7 +121,6 @@ def send_to_client(sock, user_address):
 def main():
     while True:
         client_socket, client_address = server.accept()
-        client_socket.settimeout(1.0)
         send_to_client(client_socket, client_address)
         client_socket.close()
 
