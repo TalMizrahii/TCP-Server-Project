@@ -1,4 +1,3 @@
-
 import socket
 import os
 import sys
@@ -18,7 +17,6 @@ s.bind(('', int(server_port)))
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(('', 12345))
 server.listen(5)
-server.settimeout(10.0)
 
 def search_file(patch_search, status):
     # if patch_file == 'redirect':
@@ -77,20 +75,26 @@ def close_client_socket(info):
 
 
 def send_to_client(sock, user_address):
-    print('Connection from: ' + user_address)
+    print('Connection from: ', user_address)
     while True:
         try:
-            data = sock.recv(2048).decode()
+            data = sock.recv(2048)
+            # Check if empty message.
+            if len(data) == 0:
+                # Close func
+                pass
+
         except sock.timeout:
-            print('Client disconnected\n')
+            sock.close()
             return
+        data = data.decode()
         # Checking if the data is a request or not.
         split_data = data.split(' ')
         if split_data[0] != 'GET':
             continue
-
         # Printing the request from the client as asked.
         print(data)
+        # כאן
         # Extracting the path/file name from the data.
         patch_file, connection_status = extract_path_and_conn(split_data)
         # Searching for the file in the system.
@@ -99,12 +103,11 @@ def send_to_client(sock, user_address):
         sock.send(response_data)
 
 
-
 def main():
     while True:
         client_socket, client_address = server.accept()
-        send_to_client(client_socket)
-        client_socket.close()
+        client_socket.settimeout(10)
+        send_to_client(client_socket, client_address)
 
 
 if __name__ == '__main__':
