@@ -123,7 +123,7 @@ def send_to_client(sock, user_address):
 def main():
     while True:
         client_socket, client_address = server.accept()
-        client_socket.settimeout(5.0)
+        client_socket.settimeout(1.0)
         send_to_client(client_socket, client_address)
         client_socket.close()
 
