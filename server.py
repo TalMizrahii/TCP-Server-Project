@@ -13,49 +13,93 @@ if not server_port.isnumeric() or (int(server_port) not in range(0, 65536)):
 # Binding the server port (received from the sys).
 s.bind(('', int(server_port)))
 '''
+
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(('', 12344))
+server.bind(('', 12345))
 server.listen(5)
+server.settimeout(10.0)
 
 
 def search_file(patch_search, status):
-    if patch_file == '/redirect':
-        return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'
-    file = open(patch_search, 'rb')
+    # if patch_file == 'redirect':
+    #     return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'
+    # Try to open and read in binary the file from the 'files' folder.
+    try:
+        file = open(patch_search, 'rb')
+    # If the file does not exist, send a message and close the socket.
+    except IOError:
+        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'
+
+    # Read the data from the file in binary.
     content = file.read()
+    # Save the length of the file's content.
     content_length = str(len(content))
+    # Create the response message.
+    # format_resend1 = 'HTTP/1.1 200 OK\nConnection: ' + status + '\nContent-Length: ' + content_length + '\n\n'
 
     format_resend1 = 'HTTP/1.1 200 OK\nConnection: ' + status + '\nContent-Length: '
-    format_resend2 = '\n\n'
+    format_resend2 = content_length + '\n\n'
 
-    result = format_resend1.encode() + content_length.encode() + format_resend2.encode() + content
+    result = format_resend1.encode() + format_resend2.encode() + content
     return result
 
+    # Return the response.
+    # return format_resend1.encode() + content
 
-def extract_patch_and_conn(client_data):
-    data_list = client_data.split(' ')
+
+def extract_path_and_conn(data_list):
+    # DELETE - Check only.
     print(data_list)
-    i = 2
-    patch = data_list[1]
-    while data_list[i] != 'HTTP/1.1\r\nHost:':
-        patch += data_list[i]
-        patch += ' '
-        i += 1
-
-    connection = data_list[4]
+    #
+    path = data_list[1]
+    index_of_loop = 2
+    # Scan the split data until you see the end of the request.
+    while data_list[index_of_loop] != 'HTTP/1.1\r\nHost:':
+        # Add the spaces removed by the "split".
+        path += ' '
+        # Keep scanning.
+        path += data_list[index_of_loop]
+        index_of_loop += 1
+    # Step over the http format to the connection segment.
+    index_of_loop += 2
+    # Save the connection status.
+    connection = data_list[index_of_loop]
     connection = connection.split('\r')[0]
-    patch = patch[1:]
-    return patch, connection
+    # Save the path without the starting '/'.
+    path = path[1:]
+    return path, connection
+
+
+def close_client_socket(info):
+    if info == ' ' or 'close' or 'HTTP/1.1 404 Not Found\nConnection: close\n\n':
+        print('Client disconnected\n')
+        return True
+
+
+def send_to_client(sock):
+    while True:
+        try:
+            data = sock.recv(2048).decode()
+            print(data)
+        except socket.timeout:
+            print('Client disconnected\n')
+            return
+        print('Received: ', data)
+        splitted_data = data.split(' ')
+        if splitted_data[0] != 'GET':
+            continue
+        patch_file, connection_status = extract_path_and_conn(splitted_data)
+        response_data = search_file(patch_file, connection_status)
+        sock.send(response_data)
+
+
+def main():
+    while True:
+        client_socket, client_address = server.accept()
+        print('Connection from: ', client_address, '\n')
+        send_to_client(client_socket)
+        client_socket.close()
 
 
 if __name__ == '__main__':
-
-    while True:
-        client_socket, client_address = server.accept()
-        print('Connection from: ', client_address)
-        data = client_socket.recv(100).decode()
-        print('Received: ', data)
-        patch_file, connection_status = extract_patch_and_conn(data)
-        client_socket.send(search_file(patch_file, connection_status))
-
-        print('Client disconnected\n')
+    main()
