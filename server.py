@@ -17,21 +17,21 @@ s.bind(('', int(server_port)))
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(('', 12345))
 server.listen(5)
+server.settimeout(10.0)
 
 
 def search_file(patch_search, status):
     # if patch_file == 'redirect':
     #     return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'
+
     # Try to open and read in binary the file from the 'files' folder.
     try:
         file = open(patch_search, 'rb')
     # If the file does not exist, send a message and close the socket.
     except IOError:
-        # return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'
-        pass
-        return
+        return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'
 
-        # Read the data from the file in binary.
+    # Read the data from the file in binary.
     content = file.read()
     # Save the length of the file's content.
     content_length = str(len(content))
@@ -42,15 +42,10 @@ def search_file(patch_search, status):
     format_resend2 = content_length + '\n\n'
 
     result = format_resend1.encode() + format_resend2.encode() + content
-    return result, int(content_length)
-
-    # Return the response.
-    # return format_resend1.encode() + content
+    return result
 
 
-def extract_path_and_conn(client_data):
-    # Spiting the request from the client.
-    data_list = client_data.split(' ')
+def extract_path_and_conn(data_list):
     # DELETE - Check only.
     print(data_list)
     #
@@ -73,37 +68,35 @@ def extract_path_and_conn(client_data):
     return path, connection
 
 
+def close_client_socket(info):
+    if info == ' ' or 'close' or 'HTTP/1.1 404 Not Found\nConnection: close\n\n':
+        print('Client disconnected\n')
+        return True
+
+
+def send_to_client(sock):
+    while True:
+        try:
+            data = sock.recv(2048).decode()
+            print(data)
+        except socket.timeout:
+            print('Client disconnected\n')
+            return
+        print('Received: ', data)
+        split_data = data.split(' ')
+        if split_data[0] != 'GET':
+            continue
+        patch_file, connection_status = extract_path_and_conn(split_data)
+        response_data = search_file(patch_file, connection_status)
+        sock.send(response_data)
+
+
 def main():
     while True:
         client_socket, client_address = server.accept()
-        client_socket.settimeout(10.0)
-        print('Connection from: ', client_address)
-        try:
-            data = client_socket.recv(100).decode()
-        except:
-            # CLOSE
-            client_socket.close()
-            continue
-
-        print('Received: ', data)
-        patch_file, connection_status = extract_path_and_conn(data)
-
-        response_data, response_length = search_file(patch_file, connection_status)
-
-        response_data_array = bytearray(response_data)
-        size_to_send = 0
-        next_step = 100
-        while response_length > size_to_send:
-
-            if size_to_send > response_length:
-                size_to_send -= next_step
-                next_step = response_length - size_to_send - 1
-                client_socket.send(response_data_array[size_to_send: size_to_send + next_step])
-                break
-
-            client_socket.send(response_data_array[size_to_send: size_to_send + next_step])
-            size_to_send += next_step
-        print("\n\n")
+        print('Connection from: ', client_address, '\n')
+        send_to_client(client_socket)
+        client_socket.close()
 
 
 if __name__ == '__main__':
