@@ -1,3 +1,10 @@
+"""
+Title: TCP server accepting browser clients.
+Authors: Yuval Arbel, Tal Mizrahi.
+Date: 04/12/2022.
+Version: V1.0
+"""
+
 import socket
 import os
 import sys
@@ -14,34 +21,38 @@ server.bind(('', int(server_port)))
 server.listen(5)
 
 
+# Searching for a file with path given by the client.
 def search_file(path_search, status):
     # If the client sent 'redirect', we return to him the follow message.
     if path_search == 'redirect':
         return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'.encode(), 'close'
-
+    # Try to open a file by the path given by the client.
     try:
         file = open(path_search, 'rb')
     # If the file does not exist, send a message and close the socket.
     except IOError:
         # Close func
         return 'HTTP/1.1 404 Not Found\nConnection: close\n\n'.encode(), 'close'
-
     # Read the data from the file in binary.
     content = file.read()
     # Save the length of the file's content.
     content_length = str(len(content))
-    # Building a reply message to the user
+    # Building a reply message to the user.
     format_resend1 = 'HTTP/1.1 200 OK\nConnection: ' + status + '\nContent-Length: '
     format_resend2 = content_length + '\n\n'
+    # Encode the message into result.
     result = format_resend1.encode() + format_resend2.encode() + content
-
+    # Return the result and the connection status.
     return result, status
 
 
+# Extracting the client request for a path or a file from the whole request.
 def extract_path_and_conn(data_list):
+    # The file or path begins in index 1.
     path = data_list[1]
+    # A counter for the while loop.
     index_of_loop = 2
-    # Scan the split data until you see the end of the request.
+    # Scan the data list until you see the end of the request.
     while data_list[index_of_loop] != 'HTTP/1.1\r\nHost:':
         # Add the spaces removed by the "split".
         path += ' '
@@ -52,6 +63,7 @@ def extract_path_and_conn(data_list):
     index_of_loop += 2
     # Save the connection status.
     connection = data_list[index_of_loop]
+    # Extract ht connection status.
     connection = connection.split('\r')[0]
     # Don't remove the first '/' if it's the whole message.
     if path == '/':
@@ -64,11 +76,12 @@ def extract_path_and_conn(data_list):
     # If the client wants a file by name and not by path, allow him.
     if path[0:5] != "files":
         path = 'files/' + path
+    # Return the path and the connection status.
     return path, connection
 
 
-def send_to_client(sock, user_address):
-    # Serving the client
+# Send Data to the client while handling any timeout exceptions.
+def send_to_client(sock):
     while True:
         # Trying to receive the client request.
         try:
@@ -100,13 +113,15 @@ def send_to_client(sock, user_address):
         sock.send(response_data)
 
 
+# The main control flow function of the program.
 def main():
     while True:
         client_socket, client_address = server.accept()
         client_socket.settimeout(1.0)
-        send_to_client(client_socket, client_address)
+        send_to_client(client_socket)
         client_socket.close()
 
 
+# The main function.
 if __name__ == '__main__':
     main()
