@@ -1,7 +1,6 @@
 import socket
-# import os
+import os
 import sys
-
 
 # Opening the server's socket.
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
