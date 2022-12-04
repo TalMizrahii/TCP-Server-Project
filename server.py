@@ -23,12 +23,6 @@ def search_file(path_search, status):
     # If the client sent 'redirect', we return to him the follow message.
     if path_search == 'redirect':
         return 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n'.encode(), 'close'
-    # If the client sends the message '/', he wants the file 'index.html'.
-    if path_search == '/':
-        path_search = 'files/index.html'
-    # If the client wants a file by name and not by path, allow him.
-    if path_search[0:5] != "files":
-        path_search = 'files/' + path_search
 
     try:
         file = open(path_search, 'rb')
@@ -41,20 +35,15 @@ def search_file(path_search, status):
     content = file.read()
     # Save the length of the file's content.
     content_length = str(len(content))
-    # Create the response message.
-    # format_resend1 = 'HTTP/1.1 200 OK\nConnection: ' + status + '\nContent-Length: ' + content_length + '\n\n'
-
+    # Building a reply message to the user
     format_resend1 = 'HTTP/1.1 200 OK\nConnection: ' + status + '\nContent-Length: '
     format_resend2 = content_length + '\n\n'
-
     result = format_resend1.encode() + format_resend2.encode() + content
+
     return result, status
 
 
 def extract_path_and_conn(data_list):
-    # DELETE - Check only.
-    print(data_list)
-    #
     path = data_list[1]
     index_of_loop = 2
     # Scan the split data until you see the end of the request.
@@ -72,36 +61,45 @@ def extract_path_and_conn(data_list):
     # Don't remove the first '/' if it's the whole message.
     if path == '/':
         return path, connection
-    # Save the path without the starting '/'.
-    path = path[1:]
+    # Save the path without the starting '/'. and replace redundant '%20' with spaces.
+    path = path[1:].replace("%20", " ")
+    # If the client sends the message '/', he wants the file 'index.html'.
+    if path == '/':
+        path = 'files/index.html'
+    # If the client wants a file by name and not by path, allow him.
+    if path[0:5] != "files":
+        path = 'files/' + path
     return path, connection
 
 
-def close_client_socket(info):
-    if info == 0 or info == 'close':
-        return True
-    return False
-
-
-def close_socket(socket_client):
+def close_client_socket(client_sock):
     print('Client disconnected\n')
-    socket_client.close()
+    # Closing the user socket.
+    client_sock.close()
+    return
 
 
 def send_to_client(sock, user_address):
+    # Printing the user address.
     print('Connection from: ', user_address)
+    # Serving the client
     while True:
+        # Trying to receive the client request.
         try:
             data = sock.recv(2048)
-            if close_client_socket(len(data)):
-                sock.close()
+            # Checking if the user sent an empy data.
+            if len(data) == 0:
+                close_client_socket(sock)
                 return
-        except (socket.timeout, socket.gaierror) as error:
+        # If we did not get the client request in 1s timeout.
+        except socket.timeout:
             sock.close()
             return
-        # Checking if the data is a request or not.
+        # Decode data to string representation.
         data = data.decode()
+        # Split data.
         split_data = data.split(' ')
+        # Checking if the data is a request or not.
         if split_data[0] != 'GET':
             continue
         # Printing the request from the client as asked.
@@ -109,13 +107,11 @@ def send_to_client(sock, user_address):
         # Extracting the path/file name from the data.
         patch_file, connection_status = extract_path_and_conn(split_data)
         # Searching for the file in the system.
-        response_data, response_status = search_file(patch_file, connection_status)
-
-        if close_client_socket(response_status):
+        response_data, flag = search_file(patch_file, connection_status)
+        # Checking with the flag if we need to close the client socket
+        if flag == 'close':
             sock.send(response_data)
-            close_socket(sock)
             return
-
         # Returning the response.
         sock.send(response_data)
 
@@ -123,9 +119,10 @@ def send_to_client(sock, user_address):
 def main():
     while True:
         client_socket, client_address = server.accept()
-        client_socket.settimeout(1.0)
+        print("\n\nNew client\n\n")
+        client_socket.settimeout(20.0)
         send_to_client(client_socket, client_address)
-        client_socket.close()
+        # client_socket.close() # Needed???
 
 
 if __name__ == '__main__':
