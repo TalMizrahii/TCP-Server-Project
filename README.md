@@ -64,6 +64,8 @@ To run the client, open your browser and enter to the search line:
 ```bash
 $ http://[Server IP]:[Server port][Path\file name]
 ```
+We added a "files" data base to this repository for you to try the project.
+
 ## Authors
 * [@Yuval Arbel](https://github.com/YuvalArbel1)
 * [@Tal Mizrahi](https://github.com/TalMizrahii)
