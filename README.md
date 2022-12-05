@@ -41,6 +41,10 @@ The Three main methods of the server are:
 
 As mentioned, the server doesn't use threading, so only one client is attended to at once. Therefore, the server closes every socket it accepts after the socket's timeout is activated, or when the status of the request is "closed".
 
+If the server doesn't find the file requested, it returns a 404 error message and closes the socket. 
+  
+If the client request is for "redirect", the server will reply "Moved Permanently" message and close the client's socket.
+  
 ## Dependencies
 * The program build and tested for linux machines.
 * The client is a web browser such as Chrome, Firefox, etc.
