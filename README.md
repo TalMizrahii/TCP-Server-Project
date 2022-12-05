@@ -26,6 +26,8 @@ The server takes into consideration the connection status of the client, so if t
 
 This project does not use threading, so when the server accepts a client, it assigns him the timeout value 1.0. Therefore, if the client does not send a new message within 1 second, the server closes the client's socket and accepts a new client. 
 
+The server can "listen" to 5 clients at once, so if more than 5 clients are trying to connect, the server will ignore them.
+
 
 ## Implementation
 
