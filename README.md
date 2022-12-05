@@ -1,4 +1,4 @@
-# WebConnectionServer
+# TCPServerProject
 
 <h1 align="center">
   
@@ -8,7 +8,7 @@
   <br>
 </h1>
 
-<h4 align="center">This gitHub repository is for the assignments given in Computer Networks course, Bar Ilan University.
+<h4 align="center">This gitHub repository is for the second assignments given in Computer Networks course, Bar Ilan University.
 
 
 <p align="center">
@@ -21,15 +21,18 @@
 
 ## Description
 
+In this project, we implemented a TCP server. The server receives a request for a file from a web browser (such as Chrome, Firefox, etc) as a path or the name of the file. Then, the server searches for the file in a database (a folder named "files") and sends the data back to the client. 
+The server takes into consideration the connection status of the client, so if the connection is "close" (FIN), the reply of the server will also contain the status "close" and will close the client's socket.
 
+This project does not use threading, so when the server accepts a client, it assigns him the timeout value 1.0. Therefore, if the client does not send a new message within 1 second, the server closes the client's socket and accepts a new client. 
 
 
 ## Implementation
 
 
 ## Dependencies
-
 * The program build and tested for linux machines.
+* The client is a web browser such as Chrome, Firefox, etc.
 * Except "socket" and "sys", no other libraries where used.
 
 ## Installing And Executing
