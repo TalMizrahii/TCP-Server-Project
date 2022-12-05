@@ -31,6 +31,15 @@ The server can "listen" to 5 clients at once, so if more than 5 clients are tryi
 
 ## Implementation
 
+The implementation is based on a single python module called "server.py". The server receives the port number as a system argument and binds it to the server's socket.
+
+The Three main methods of the server are:
+
+* "send_to_client" - responsible to send the requested data to the client.
+* "extract_path_and_conn" - extracting the path or the file's name from the client's request.
+* "search_file" - responsible for search for the requested file in the database.
+
+As mentioned, the server doesn't use threading, so only one client is attended to at once. Therefore, the server closes every socket it accepts after the socket's timeout is activated, or when the status of the request is "closed".
 
 ## Dependencies
 * The program build and tested for linux machines.
@@ -43,24 +52,18 @@ To clone and run this application, you'll need [Git](https://git-scm.com) instal
 
 ```bash
 # Clone this repository.
-$ git clone https://github.com/TalMizrahii/VirtualChat
+$ git clone https://github.com/TalMizrahii/TCPServerProject
 
 # Go into the repository.
-$ cd VirtualChat
-```
+$ cd TCPServerProject
 
-```bash
 # Run the server.
 $ server.py [servers port number]
 ```
-
+To run the client, open your browser and enter to the search line:
 ```bash
-# Run the client.
-$ client.py [server's ip] [servers port number]
+$ http://[Server IP]:[Server port][Path\file name]
 ```
-  You can use localhost ip 127.0.0.1 and port number 12345 as run example.
-
-
 ## Authors
 * [@Yuval Arbel](https://github.com/YuvalArbel1)
 * [@Tal Mizrahi](https://github.com/TalMizrahii)
