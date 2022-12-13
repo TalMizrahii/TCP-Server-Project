@@ -6,7 +6,6 @@ Version: V1.0
 """
 
 import socket
-import os
 import sys
 
 
