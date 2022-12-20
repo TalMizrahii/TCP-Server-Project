@@ -8,7 +8,6 @@ Version: V1.0
 import socket
 import sys
 
-
 # Opening the server's socket.
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # Getting the port from the system.
@@ -85,10 +84,15 @@ def send_to_client(sock):
     while True:
         # Trying to receive the client request.
         try:
-            data = sock.recv(2048)
-            # Checking if the user sent an empy data.
+            # Accept data from the socket.
+            data = sock.recv(4096)
+            # Checking if the user sent an empty data.
             if len(data) == 0:
                 return
+            # Keep receiving data as long we didn't receive "\r\n\r\n".
+            while "\r\n\r\n" not in data.decode():
+                data += sock.recv(4096)
+
         # If we did not get the client request in 1s timeout.
         except socket.timeout:
             return
