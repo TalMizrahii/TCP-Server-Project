@@ -1,5 +1,3 @@
-# TCPServerProject
-
 <h1 align="center">
   
   ![python-logo-glassy](https://user-images.githubusercontent.com/103560553/204082228-92a30920-ca99-4517-9b9d-c3ab44d42a0b.png)
@@ -56,10 +54,10 @@ To clone and run this application, you'll need [Git](https://git-scm.com) instal
 
 ```bash
 # Clone this repository.
-$ git clone https://github.com/TalMizrahii/TCPServerProject
+$ git clone https://github.com/TalMizrahii/TCP-Server-Project
 
 # Go into the repository.
-$ cd TCPServerProject
+$ cd TCP-Server-Project
 
 # Run the server.
 $ server.py [servers port number]
