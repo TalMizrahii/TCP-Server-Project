@@ -6,9 +6,8 @@
   <br>
 </h1>
 
-<h4 align="center">This gitHub repository is for the second assignments given in Computer Networks course, Bar Ilan University.
-
-
+<h4 align="center">
+A TCP server reached by a web browser client, as part of the second assignments given in Computer Networks course, Bar Ilan University.
 <p align="center">
   <a href="#description">Description</a> •
   <a href="#implementation">Implementation</a> •
